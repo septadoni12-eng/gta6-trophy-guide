@@ -1,50 +1,66 @@
-// Takes the screenshots listed in shots.json with the headless Chromium shell
-// bundled in the Playwright browser cache (no install, no network at run time).
-// Serves app/ on a local port, screenshots each view at 1280x800, converts the
-// PNG capture to JPEG with ffmpeg, and writes it under screenshots/.
-// Usage: node shots.mjs [--port 8123]
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { homedir } from 'node:os';
+// Re-render the entry's screenshots from the finished app, so every shot is a
+// real render of the code in this repo: serve app/ on a scratch port, open
+// each view from shots.json in headless Chromium at 1280x800, and convert the
+// capture to a JPEG under 256 KiB. Run with `node shots.mjs` from the repo root.
+//
+// Needs the Chromium binary from the Playwright cache and ffmpeg on PATH.
+// Screenshots land in screenshots/ beside this file (the first by name is
+// the entry's cover). Nothing here is part of the judged app/ payload.
+
+import { execFile, spawn } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const portArg = process.argv.indexOf('--port');
-const port = portArg === -1 ? 8123 : Number(process.argv[portArg + 1] || 8123);
-const shots = JSON.parse(readFileSync(join(here, 'shots.json'), 'utf8'));
-const cache = join(homedir(), '.cache', 'ms-playwright');
-const shell = join(cache, 'chromium_headless_shell-1200', 'chrome-headless-shell-linux64', 'chrome-headless-shell');
-if (!existsSync(shell)) throw new Error(`headless shell not found under ${cache}`);
+const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const CHROME = join(process.env.HOME, '.cache/ms-playwright/chromium-1255/chrome-linux64/chrome');
+const PORT = 8931;
+const MAX_BYTES = 262144;
 
-const server = spawn(process.execPath, ['serve.ts', '--port', String(port)], { cwd: here, stdio: 'ignore' });
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const waitUp = async () => {
-  for (let i = 0; i < 50; i++) {
-    try { await fetch(`http://127.0.0.1:${port}/`); return; } catch { await sleep(200); }
+const run = (cmd, args, opts = {}) =>
+  new Promise((resolve, reject) =>
+    execFile(cmd, args, opts, (err, stdout, stderr) => (err ? reject(new Error(`${cmd} ${args.join(' ')}: ${stderr || err.message}`)) : resolve(stdout))));
+
+async function waitForServer(url, tries = 40) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return;
+    } catch { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 250));
   }
-  throw new Error('serve.ts did not come up');
-};
+  throw new Error(`server never came up at ${url}`);
+}
 
+async function shoot(shot) {
+  const png = join(tmpdir(), `leonida-${shot.file}.png`);
+  const url = `http://127.0.0.1:${PORT}${shot.path}`;
+  await run(CHROME, [
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
+    `--window-size=${shot.viewport.width},${shot.viewport.height}`,
+    '--virtual-time-budget=10000', `--screenshot=${png}`, url,
+  ]);
+  if (!existsSync(png)) throw new Error(`no capture for ${shot.file}`);
+  const dest = join(repoRoot, 'screenshots', shot.file);
+  // Convert to JPEG; drop quality until the 256 KiB cap holds.
+  for (const quality of [85, 78, 70, 60]) {
+    await run('ffmpeg', ['-y', '-v', 'error', '-i', png, '-q:v', String(quality), dest]);
+    if (statSync(dest).size <= MAX_BYTES) {
+      console.log(`${shot.file}: ${statSync(dest).size} B at quality ${quality} (${url})`);
+      return;
+    }
+  }
+  throw new Error(`${shot.file} still over 256 KiB after quality 60`);
+}
+
+const shots = JSON.parse(readFileSync(join(repoRoot, 'shots.json'), 'utf8'));
+mkdirSync(join(repoRoot, 'screenshots'), { recursive: true });
+const server = spawn(process.execPath, [join(repoRoot, 'serve.ts'), '--port', String(PORT)], { stdio: 'ignore' });
 try {
-  await waitUp();
-  mkdirSync(join(here, 'screenshots'), { recursive: true });
-  for (const shot of shots) {
-    const png = join(here, 'screenshots', shot.file.replace(/\.jpe?g$/i, '.png'));
-    const jpg = join(here, 'screenshots', shot.file);
-    const url = `http://127.0.0.1:${port}${shot.path}`;
-    const run = spawnSync(shell, [
-      '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-      `--window-size=${shot.viewport.width},${shot.viewport.height}`,
-      '--virtual-time-budget=9000', `--screenshot=${png}`, url,
-    ], { stdio: 'inherit' });
-    if (run.status !== 0 || !existsSync(png)) throw new Error(`screenshot failed: ${shot.file}`);
-    const conv = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', png, '-q:v', '4', jpg], { stdio: 'inherit' });
-    rmSync(png, { force: true });
-    if (conv.status !== 0 || !existsSync(jpg)) throw new Error(`jpeg convert failed: ${shot.file}`);
-    console.log(`shot ${shot.file} <- ${shot.path}`);
-  }
+  await waitForServer(`http://127.0.0.1:${PORT}/`);
+  for (const shot of shots) await shoot(shot);
+  console.log(`done: ${shots.length} screenshots in screenshots/`);
 } finally {
   server.kill();
 }
-console.log('all screenshots written');

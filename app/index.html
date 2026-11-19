@@ -4,77 +4,51 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leonida Legend — GTA VI Trophy Guide &amp; Tracker</title>
-<meta name="description" content="All 55 official GTA VI trophies with cited own-words guides, a 6-stage platinum roadmap, a missable watch list, a spoiler shield, a Next-Up planner, and a saved checklist. Works offline.">
+<meta name="description" content="All 55 official GTA VI trophies with cited own-words guides, a 6-stage platinum roadmap, missable watch list, spoiler shield, Next-Up planner, saved checklist, export/import and print view.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <div class="brand">
-    <div class="mark" aria-hidden="true">LL</div>
-    <div>
-      <h1>Leonida Legend</h1>
-      <p class="sub">GTA VI trophy guide &amp; tracker — all 55 official PlayStation 5 trophies</p>
-    </div>
+<header class="masthead">
+  <div>
+    <h1>Leonida Legend</h1>
+    <p class="tagline">All 55 official GTA VI trophies — cited own-words guides, 6-stage platinum roadmap, missable watch list.</p>
   </div>
-  <div class="progress" id="progress" aria-label="Platinum progress">
-    <div class="bar"><div class="fill" id="barFill"></div></div>
-    <p id="progressText">Loading the trophy list…</p>
-    <p class="counters" id="counters"></p>
+  <div class="score" id="score" aria-live="polite">
+    <div class="bignum"><span id="earnedCount">0</span><span class="of">/ 55 earned</span></div>
+    <div class="bar"><span id="barFill"></span></div>
+    <div class="points"><span id="points">0 PSN points</span> · <span id="gradeCounts"></span></div>
   </div>
 </header>
-
-<nav class="views" aria-label="Views">
-  <button data-view="checklist" class="active" type="button">Checklist</button>
-  <button data-view="roadmap" type="button">Platinum roadmap</button>
-  <button data-view="missables" type="button">Missable watch list</button>
-  <button data-view="nextup" type="button">Next-Up planner</button>
+<nav class="tabs" id="tabs">
+  <button type="button" data-view="checklist" class="on">Checklist</button>
+  <button type="button" data-view="roadmap">Roadmap</button>
+  <button type="button" data-view="missables">Missables</button>
+  <button type="button" data-view="nextup">Next Up</button>
 </nav>
-
-<section class="toolbar" aria-label="Tracker controls">
-  <input id="search" type="search" placeholder="Search a trophy or guide…" aria-label="Search trophies">
-  <div class="chips" id="kindChips" aria-label="Filter by kind"></div>
-  <div class="chips" id="gradeChips" aria-label="Filter by grade"></div>
-  <label class="toggle"><input type="checkbox" id="missableOnly"> Missable only</label>
-  <label class="toggle"><input type="checkbox" id="hideEarned"> Hide earned</label>
-  <label class="toggle"><input type="checkbox" id="spoilerShield"> Spoiler shield</label>
-</section>
-
-<section class="actions" aria-label="Save and share">
-  <button id="exportBtn" type="button">Export progress</button>
-  <button id="importBtn" type="button">Import progress</button>
-  <input id="importFile" type="file" accept="application/json,.json" hidden>
+<div class="controls">
+  <label class="search">Search <input id="search" type="search" placeholder="trophy, mission, keyword…" autocomplete="off"></label>
+  <label>Kind <select id="kind"><option value="all">All kinds</option><option value="story">Story</option><option value="strangers">Strangers</option><option value="collectibles">Collectibles</option><option value="activities">Activities</option><option value="crime">Crime</option><option value="partner">Partner</option><option value="money">Money</option><option value="moments">Moments</option><option value="completion">Completion</option></select></label>
+  <label>Grade <select id="grade"><option value="all">All grades</option><option value="platinum">Platinum</option><option value="gold">Gold</option><option value="silver">Silver</option><option value="bronze">Bronze</option></select></label>
+  <label>Status <select id="status"><option value="all">All</option><option value="unearned">Not earned</option><option value="earned">Earned</option><option value="missable">Missable watch</option></select></label>
+  <label class="spoiler"><input id="spoiler" type="checkbox"> Spoiler shield</label>
+  <span class="spacer"></span>
+  <button id="exportBtn" type="button">Export</button>
+  <label class="importBtn">Import <input id="importFile" type="file" accept="application/json"></label>
   <button id="printBtn" type="button">Print view</button>
-  <button id="resetBtn" type="button">Reset progress</button>
-  <p class="hint">Progress, notes and the spoiler setting save in this browser (localStorage). Nothing leaves your device.</p>
-</section>
-
-<main id="main">
-  <section id="view-checklist" class="view">
-    <ol id="list" class="trophy-list"></ol>
-    <p id="empty" class="empty" hidden>No trophies match these filters.</p>
+</div>
+<main>
+  <section id="view-checklist" class="view on">
+    <p class="hint" id="listHint"></p>
+    <ul class="rows" id="rows"></ul>
   </section>
-  <section id="view-roadmap" class="view" hidden>
-    <h2>Platinum roadmap — six stages, in story order</h2>
-    <p class="lede">Work the stages in order. Each stage lists its trophies with a live count; the missable watch list sits in stage 5, before the finale.</p>
-    <ol id="roadmap" class="roadmap"></ol>
-  </section>
-  <section id="view-missables" class="view" hidden>
-    <h2>Missable watch list</h2>
-    <p class="lede">Built from the wording of the official descriptions. <strong>Likely missable</strong> means the moment is tied to one story beat; <strong>watch</strong> means finish it before the endgame. Everything else reads as free-roam repeatable.</p>
-    <ol id="watchlist" class="trophy-list"></ol>
-  </section>
-  <section id="view-nextup" class="view" hidden>
-    <h2>Next-Up planner</h2>
-    <p class="lede">The next trophy to chase, in roadmap order — earliest unfinished stage first, missables before grinds.</p>
-    <ol id="nextup" class="trophy-list"></ol>
-  </section>
+  <section id="view-roadmap" class="view"><div id="roadmap"></div></section>
+  <section id="view-missables" class="view"><div id="missables"></div></section>
+  <section id="view-nextup" class="view"><div id="nextup"></div></section>
+  <aside id="detail" class="detail" hidden></aside>
 </main>
-
 <footer>
-  <p>Names, descriptions and grades are the official PlayStation 5 trophy list, as mirrored by Exophase and PSNProfiles. Every guide is written in this project's own words and cites its sources beside it. No Rockstar Games artwork, logo or game screenshot is used anywhere in this guide.</p>
-  <p class="small">Leonida Legend is an unofficial fan-made tracker. Grand Theft Auto and GTA are trademarks of Take-Two Interactive.</p>
+  <p>Names, descriptions and grades: the official PlayStation 5 trophy list, as mirrored by Exophase and PSNProfiles (list of 2026-11-18). Guides are this site's own words; series conventions are named as GTA V / RDR2 conventions. Points: bronze 15 · silver 30 · gold 90 · platinum 300. Progress and notes save in this browser only (localStorage) — nothing leaves your device.</p>
 </footer>
-
 <script type="module" src="app.js"></script>
 </body>
 </html>
