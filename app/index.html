@@ -4,104 +4,75 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leonida Legend — GTA VI Trophy Guide &amp; Tracker</title>
-<meta name="description" content="Offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI: cited guides, a six-stage platinum roadmap, a missable watch list, a spoiler shield, notes, export and import.">
+<meta name="description" content="All 55 official GTA VI trophies with cited own-words guides, a 6-stage platinum roadmap, a missable watch list, a spoiler shield, a Next-Up planner, and a saved checklist. Works offline.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="hero">
-  <div class="hero-text">
-    <p class="kicker">GRAND THEFT AUTO VI · PLAYSTATION 5 · OFFLINE GUIDE &amp; TRACKER</p>
-    <h1>Leonida <span>Legend</span></h1>
-    <p class="tagline">All 55 official trophies, each with a cited guide in our own words, a six-stage roadmap to the platinum, and a missable watch list built from the official descriptions.</p>
+<header class="top">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">LL</div>
+    <div>
+      <h1>Leonida Legend</h1>
+      <p class="sub">GTA VI trophy guide &amp; tracker — all 55 official PlayStation 5 trophies</p>
+    </div>
   </div>
-  <div class="hero-stats">
-    <div class="ring-wrap">
-      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
-        <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
-        <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
-      </svg>
-      <div class="ring-label"><strong id="progressPct">0%</strong><small id="progressCount">0 of 55</small></div>
-    </div>
-    <div class="stat-grid">
-      <div class="stat"><small>PSN points</small><strong id="pointsTotal">0 / 1350</strong></div>
-      <div class="stat pips">
-        <span class="pip platinum">◆ <b id="countPlatinum">0/1</b></span>
-        <span class="pip gold">◆ <b id="countGold">0/2</b></span>
-        <span class="pip silver">◆ <b id="countSilver">0/6</b></span>
-        <span class="pip bronze">◆ <b id="countBronze">0/46</b></span>
-      </div>
-      <div class="stat nextup">
-        <small>Next up on the roadmap</small>
-        <strong id="nextUpName">—</strong>
-        <span id="nextUpMeta"></span>
-      </div>
-    </div>
+  <div class="progress" id="progress" aria-label="Platinum progress">
+    <div class="bar"><div class="fill" id="barFill"></div></div>
+    <p id="progressText">Loading the trophy list…</p>
+    <p class="counters" id="counters"></p>
   </div>
 </header>
 
-<nav class="tabs" aria-label="Views">
-  <button type="button" class="tab active" data-view="checklist">Checklist &amp; guides</button>
-  <button type="button" class="tab" data-view="roadmap">Roadmap to the platinum</button>
-  <button type="button" class="tab" data-view="missables">Missable watch list <span class="badge" id="missableCount"></span></button>
+<nav class="views" aria-label="Views">
+  <button data-view="checklist" class="active" type="button">Checklist</button>
+  <button data-view="roadmap" type="button">Platinum roadmap</button>
+  <button data-view="missables" type="button">Missable watch list</button>
+  <button data-view="nextup" type="button">Next-Up planner</button>
 </nav>
 
-<section class="toolbar" id="toolbar">
-  <input id="searchBox" type="search" placeholder="Search trophies…" aria-label="Search trophies">
-  <div class="chips" id="kindChips" role="group" aria-label="Filter by kind"></div>
-  <label>Grade
-    <select id="gradeFilter">
-      <option value="all">All grades</option>
-      <option value="platinum">Platinum</option>
-      <option value="gold">Gold</option>
-      <option value="silver">Silver</option>
-      <option value="bronze">Bronze</option>
-    </select>
-  </label>
-  <label>Status
-    <select id="statusFilter">
-      <option value="all">All</option>
-      <option value="open">Not earned</option>
-      <option value="earned">Earned</option>
-    </select>
-  </label>
-  <label class="shield"><input type="checkbox" id="spoilerShield" checked> Spoiler shield: hide story trophies until earned</label>
-  <div class="actions">
-    <button type="button" id="exportBtn">Export progress</button>
-    <label class="import-label">Import progress <input type="file" id="importFile" accept="application/json"></label>
-    <button type="button" id="printBtn">Print view</button>
-  </div>
+<section class="toolbar" aria-label="Tracker controls">
+  <input id="search" type="search" placeholder="Search a trophy or guide…" aria-label="Search trophies">
+  <div class="chips" id="kindChips" aria-label="Filter by kind"></div>
+  <div class="chips" id="gradeChips" aria-label="Filter by grade"></div>
+  <label class="toggle"><input type="checkbox" id="missableOnly"> Missable only</label>
+  <label class="toggle"><input type="checkbox" id="hideEarned"> Hide earned</label>
+  <label class="toggle"><input type="checkbox" id="spoilerShield"> Spoiler shield</label>
 </section>
 
-<main>
-  <section id="view-checklist" class="view active">
-    <div class="layout">
-      <div class="list-wrap">
-        <p class="list-meta" id="listMeta"></p>
-        <ol class="trophy-list" id="trophyList"></ol>
-      </div>
-      <aside class="guide-panel" id="guidePanel" aria-live="polite"></aside>
-    </div>
-  </section>
+<section class="actions" aria-label="Save and share">
+  <button id="exportBtn" type="button">Export progress</button>
+  <button id="importBtn" type="button">Import progress</button>
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <button id="printBtn" type="button">Print view</button>
+  <button id="resetBtn" type="button">Reset progress</button>
+  <p class="hint">Progress, notes and the spoiler setting save in this browser (localStorage). Nothing leaves your device.</p>
+</section>
 
-  <section id="view-roadmap" class="view">
-    <div class="roadmap-head">
-      <h2>The road to <em>Vice Got a Price!</em></h2>
-      <p>Six stages, in the order the official descriptions ask for them: story first, strands before the endgame, the grind in the middle, crime and money once the economy is running, and the finale last. Built from the official trophy descriptions — chapters and missions, collectibles and counts.</p>
-    </div>
-    <div id="roadmapStages"></div>
+<main id="main">
+  <section id="view-checklist" class="view">
+    <ol id="list" class="trophy-list"></ol>
+    <p id="empty" class="empty" hidden>No trophies match these filters.</p>
   </section>
-
-  <section id="view-missables" class="view">
-    <div class="roadmap-head">
-      <h2>Missable watch list</h2>
-      <p>Flagged from the wording of the official descriptions alone: choice-gated trophies, one-off set pieces tied to a single mission window, and strand finales that belong before the endgame. Everything not listed here reads as free-roam repeatable from its description.</p>
-    </div>
-    <div id="missableList"></div>
+  <section id="view-roadmap" class="view" hidden>
+    <h2>Platinum roadmap — six stages, in story order</h2>
+    <p class="lede">Work the stages in order. Each stage lists its trophies with a live count; the missable watch list sits in stage 5, before the finale.</p>
+    <ol id="roadmap" class="roadmap"></ol>
+  </section>
+  <section id="view-missables" class="view" hidden>
+    <h2>Missable watch list</h2>
+    <p class="lede">Built from the wording of the official descriptions. <strong>Likely missable</strong> means the moment is tied to one story beat; <strong>watch</strong> means finish it before the endgame. Everything else reads as free-roam repeatable.</p>
+    <ol id="watchlist" class="trophy-list"></ol>
+  </section>
+  <section id="view-nextup" class="view" hidden>
+    <h2>Next-Up planner</h2>
+    <p class="lede">The next trophy to chase, in roadmap order — earliest unfinished stage first, missables before grinds.</p>
+    <ol id="nextup" class="trophy-list"></ol>
   </section>
 </main>
 
 <footer>
-  <p>Guides are original text written for this app; trophy names, descriptions and grades are quoted exactly as PlayStation publishes them. Sources are named beside every guide. No Rockstar Games logo or artwork is used; the look is this app's own. Progress is saved only in your browser (localStorage) — export it before you clear your browser data.</p>
+  <p>Names, descriptions and grades are the official PlayStation 5 trophy list, as mirrored by Exophase and PSNProfiles. Every guide is written in this project's own words and cites its sources beside it. No Rockstar Games artwork, logo or game screenshot is used anywhere in this guide.</p>
+  <p class="small">Leonida Legend is an unofficial fan-made tracker. Grand Theft Auto and GTA are trademarks of Take-Two Interactive.</p>
 </footer>
 
 <script type="module" src="app.js"></script>

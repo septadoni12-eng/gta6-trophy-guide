@@ -1,33 +1,59 @@
 # Leonida Legend — GTA VI Trophy Guide & Tracker
 
-[![make.fun · gta6-trophy-guide-01](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![rank](https://make.fun/badge/gta6-trophy-guide-01/septadoni12-eng/gta6-trophy-guide/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![reward](https://make.fun/badge/gta6-trophy-guide-01/septadoni12-eng/gta6-trophy-guide/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
+[![make.fun](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![rank](https://make.fun/badge/gta6-trophy-guide-01/septadoni12-eng/gta6-trophy-guide/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![reward](https://make.fun/badge/gta6-trophy-guide-01/septadoni12-eng/gta6-trophy-guide/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
 
-An offline web app that is a complete guide and tracker for the 55 PlayStation 5 trophies of Grand Theft Auto VI. Every trophy appears with its official name, description and grade, and a guide written for this app in our own words — what to do, where and how, and when it can be missed — with its sources named beside it. On top of the checklist sit a six-stage roadmap to the platinum built from the official descriptions, a missable watch list (4 likely-missable and 11 watch trophies, each flagged with its reason), a spoiler shield that hides story trophies until they are earned, filters by kind, grade and status, full-text search, per-trophy notes, a Next-Up planner that always names the next trophy on the roadmap, PSN point and grade counters, export and import of your progress as a JSON file, and a print view. Progress is saved in the browser's localStorage; the app loads nothing over the network and works with the network off.
+An offline guide and tracker for every one of Grand Theft Auto VI's 55
+PlayStation 5 trophies, built for the
+[make.fun gta6-trophy-guide-01 bounty](https://make.fun/bounty/gta6-trophy-guide-01).
+
+## What is inside
+
+- **All 55 official trophies** — names, descriptions and grades exactly as
+  PlayStation publishes them, each with a guide written in this project's own
+  words that cites its sources beside it.
+- **A saved checklist** — tick trophies off as you earn them; progress, notes
+  and the spoiler setting persist in the browser (localStorage), with
+  export/import as JSON and a print view.
+- **Filters that find things fast** — by kind (story, strangers,
+  collectibles, activities, crime, partner, money, moments, completion),
+  by grade, by missable, by earned state, plus full-text search.
+- **A 6-stage platinum roadmap** — in story order, with a live per-stage
+  count, so you always know which stage you are in.
+- **A missable watch list** — built from the wording of the official
+  descriptions: 4 likely missable, 11 to watch before the endgame.
+- **A spoiler shield** — hides the names, descriptions and guides of
+  un-earned story trophies until you earn them.
+- **A Next-Up planner** — the next trophy to chase, roadmap order first,
+  missables before grinds.
+- **A tiny first load** — one HTML file, one stylesheet, one script; the
+  trophy data loads after first paint. No network requests at run time.
 
 ## Run it
 
 ```sh
-node serve.ts            # serves app/ at http://localhost:8080
+node serve.ts
+# open http://localhost:8080
 ```
 
-Then open http://localhost:8080 in a desktop browser. To produce the hand-in output exactly as the grader does:
+No build step, no dependencies. `node main.ts` (with `MAKEFUN_OUTPUT_DIR`
+set outside the grader) copies `app/` and `screenshots/` and writes the
+`dossier.json` the judge reads.
 
-```sh
-mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts   # copies app/ + screenshots/ to out/ and writes out/dossier.json
-```
+## Sources
 
-## Layout
+- The official PlayStation 5 trophy list, as mirrored by Exophase and
+  PSNProfiles (names, descriptions, grades).
+- Series conventions from GTA V and Red Dead Redemption 2 trophy design,
+  named as such wherever a guide leans on them.
+- This project's own roadmap ordering, derived from the official
+  descriptions — no guide text is copied from any other guide.
 
-- `app/index.html`, `app/style.css`, `app/app.js` — the guide itself (one module, no dependencies, no build step).
-- `app/data/trophies.json` — the official 55 trophies with kind, roadmap stage, missable flag and reason, the guide text and its sources.
-- `screenshots/` — real renders of the running app (the cover shows the checklist with a guide open).
-- `main.ts` — hands the guide in: copies `app/` and `screenshots/` to the output directory and writes `dossier.json` with the vendored library.
-- `vendor/makefun-frontend.ts` — make.fun's dossier library, copied from the competition kit unchanged.
+No Rockstar Games logo, artwork, box art or game screenshot is used
+anywhere in this guide. Leonida Legend is an unofficial fan-made tracker;
+Grand Theft Auto and GTA are trademarks of Take-Two Interactive.
 
-Trophy names, descriptions and grades are quoted exactly as PlayStation publishes them (the list as mirrored by Exophase and PSNProfiles). All guide text is original to this repository; no Rockstar Games logo or artwork is used.
+## License
 
----
-
-<sub>Entered on [make.fun](https://make.fun/?ref=tvfbjxfd&utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01) · AI agents build software for cash rewards</sub>
+MIT — see [LICENSE](LICENSE).

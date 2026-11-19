@@ -1,82 +1,50 @@
-// shots.mjs — take the entry's screenshots with headless Chromium over CDP.
-// Usage: node shots.mjs <base-url> <out-dir>
-// Renders the real app at 1280x800: it seeds the tracker through the app's own
-// localStorage (the same state a player would have), opens views through the
-// app's own controls and deep links, and captures JPEG screenshots.
-import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+// Takes the screenshots listed in shots.json with the headless Chromium shell
+// bundled in the Playwright browser cache (no install, no network at run time).
+// Serves app/ on a local port, screenshots each view at 1280x800, converts the
+// PNG capture to JPEG with ffmpeg, and writes it under screenshots/.
+// Usage: node shots.mjs [--port 8123]
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const [baseUrl, outDir] = process.argv.slice(2);
-const chromePath = join(homedir(), '.cache/ms-playwright/chromium-1255/chrome-linux64/chrome');
-const PORT = 9333;
-mkdirSync(outDir, { recursive: true });
+const here = fileURLToPath(new URL('.', import.meta.url));
+const portArg = process.argv.indexOf('--port');
+const port = portArg === -1 ? 8123 : Number(process.argv[portArg + 1] || 8123);
+const shots = JSON.parse(readFileSync(join(here, 'shots.json'), 'utf8'));
+const cache = join(homedir(), '.cache', 'ms-playwright');
+const shell = join(cache, 'chromium_headless_shell-1200', 'chrome-headless-shell-linux64', 'chrome-headless-shell');
+if (!existsSync(shell)) throw new Error(`headless shell not found under ${cache}`);
 
-const chrome = spawn(chromePath, [
-  '--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
-  `--remote-debugging-port=${PORT}`, '--remote-debugging-address=127.0.0.1', '--window-size=1280,800',
-  '--user-data-dir=/tmp/leonida-shots-profile', 'about:blank',
-], { stdio: 'ignore' });
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function connect() {
-  for (let i = 0; i < 160; i++) {
-    try {
-      const targets = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      const page = targets.find((t) => t.type === 'page');
-      if (page) return page.webSocketDebuggerUrl;
-    } catch { /* not up yet */ }
-    await sleep(250);
+const server = spawn(process.execPath, ['serve.ts', '--port', String(port)], { cwd: here, stdio: 'ignore' });
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const waitUp = async () => {
+  for (let i = 0; i < 50; i++) {
+    try { await fetch(`http://127.0.0.1:${port}/`); return; } catch { await sleep(200); }
   }
-  throw new Error('chromium CDP did not come up');
-}
-
-const wsUrl = await connect();
-const ws = new WebSocket(wsUrl);
-await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
-let seq = 0;
-const pending = new Map();
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-  if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg.result); pending.delete(msg.id); }
+  throw new Error('serve.ts did not come up');
 };
-function cdp(method, params = {}) {
-  const id = ++seq;
-  return new Promise((resolve) => { pending.set(id, resolve); ws.send(JSON.stringify({ id, method, params })); });
+
+try {
+  await waitUp();
+  mkdirSync(join(here, 'screenshots'), { recursive: true });
+  for (const shot of shots) {
+    const png = join(here, 'screenshots', shot.file.replace(/\.jpe?g$/i, '.png'));
+    const jpg = join(here, 'screenshots', shot.file);
+    const url = `http://127.0.0.1:${port}${shot.path}`;
+    const run = spawnSync(shell, [
+      '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+      `--window-size=${shot.viewport.width},${shot.viewport.height}`,
+      '--virtual-time-budget=9000', `--screenshot=${png}`, url,
+    ], { stdio: 'inherit' });
+    if (run.status !== 0 || !existsSync(png)) throw new Error(`screenshot failed: ${shot.file}`);
+    const conv = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', png, '-q:v', '4', jpg], { stdio: 'inherit' });
+    rmSync(png, { force: true });
+    if (conv.status !== 0 || !existsSync(jpg)) throw new Error(`jpeg convert failed: ${shot.file}`);
+    console.log(`shot ${shot.file} <- ${shot.path}`);
+  }
+} finally {
+  server.kill();
 }
-
-async function evaluate(expression) {
-  const result = await cdp('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (result?.exceptionDetails) throw new Error('page error: ' + JSON.stringify(result.exceptionDetails).slice(0, 400));
-  return result?.result?.value;
-}
-
-async function shoot(file, setup) {
-  await cdp('Page.navigate', { url: baseUrl });
-  await sleep(900);
-  if (setup) { await evaluate(setup); await sleep(700); }
-  const shot = await cdp('Page.captureScreenshot', { format: 'jpeg', quality: 82 });
-  writeFileSync(join(outDir, file), Buffer.from(shot.data, 'base64'));
-  console.log('shot', file);
-}
-
-await cdp('Page.enable', {});
-await cdp('Runtime.enable', {});
-await cdp('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
-
-const SEED = `localStorage.setItem('leonida-legend-tracker-v1', JSON.stringify({ earned: [2, 3, 8, 20, 44, 53], notes: { 40: 'Vault 3 of 5 done — try the marina branch next, boat escape worked.' }, shield: true }));`;
-
-// 1 — cover: checklist with progress, a silver guide open, its sources and a note visible.
-await shoot('1-cover.jpg', `${SEED} location.hash = 'trophy-40'; location.reload();`);
-// 2 — the roadmap: six stages with progress bars and trophy chips.
-await shoot('2-roadmap.jpg', `${SEED} location.hash = 'roadmap'; location.reload();`);
-// 3 — the missable watch list.
-await shoot('3-missables.jpg', `${SEED} location.hash = 'missables'; location.reload();`);
-// 4 — spoiler shield at work: story filter, unearned story trophies masked.
-await shoot('4-spoiler-shield.jpg', `${SEED} location.hash = ''; location.reload(); setTimeout(() => { [...document.querySelectorAll('.chip')].find(c => c.textContent === 'Story')?.click(); }, 350);`);
-
-ws.close();
-chrome.kill('SIGTERM');
-console.log('done');
+console.log('all screenshots written');
